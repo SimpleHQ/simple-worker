@@ -13,7 +13,7 @@ go get github.com/simplehq/simple-worker
 Usage
 =====
 
-To use simple-worker, you first need a `Processor`. A processor is simply a function that takes a `WorkRequest` that it will then process.
+To use simple-worker, you first need a `Processor`. A processor is simply a function that takes a `interface{}` that it will then process.
 
 ```Go
 import (
@@ -21,8 +21,12 @@ import (
     "github.com/simplehq/simple-worker"
 )
 
-func ProcessTask(job worker.WorkRequest) {
-    fmt.Println("Job processed")
+type WorkRequest struct {
+    Message string
+}
+
+func ProcessTask(job WorkRequest) {
+    fmt.Println(job.Message)
 }
 ```
 
@@ -35,21 +39,21 @@ maxQueue := 100
 queue := worker.StartDispatcher(params.MaxWorkers, workQueue, ProcessTask)
 ```
 
-`StartDispatcher` returns a `chan WorkRequest` for you to start adding jobs for processing.
+`StartDispatcher` returns a `chan interface{}` for you to start adding jobs for processing.
 
 ```Go
 queue := worker.StartDispatcher(params.MaxWorkers, workQueue, ProcessTask)
 
-job := worker.WorkRequest{
-    Type: 1,
+job := WorkRequest{
     Message: "Oh Boy"
 }
 
 queue <- job
 ```
 
+This would ouput the message `"Oh Boy"` once the job has been processed.
+
 Future Plans
 ============
 
-- WorkRequest interface for custom job structure
 - Dispatcher interface

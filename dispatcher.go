@@ -1,12 +1,12 @@
 package worker
 
 // WorkerQueue is the list of items to be processed.
-var WorkerQueue chan chan WorkRequest
+var WorkerQueue chan chan interface{}
 
 // StartDispatcher takes items from the Queue and sends them to a Worker.
-func StartDispatcher(nworkers int, nqueue int, taskProcessor func(WorkRequest)) chan WorkRequest {
-	queue := make(chan WorkRequest, nqueue)
-	WorkerQueue = make(chan chan WorkRequest, nworkers)
+func StartDispatcher(nworkers int, nqueue int, taskProcessor func(interface{})) chan interface{} {
+	queue := make(chan interface{}, nqueue)
+	WorkerQueue = make(chan chan interface{}, nworkers)
 
 	for i := 0; i < nworkers; i++ {
 		// Starting n workers

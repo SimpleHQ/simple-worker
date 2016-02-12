@@ -15,7 +15,7 @@ Usage
 
 To use simple-worker, you first need a `Processor`. A processor is simply a function that takes a `WorkRequest` that it will then process.
 
-```
+```Go
 import (
     "fmt"
     "github.com/simplehq/simple-worker"
@@ -37,7 +37,7 @@ queue := worker.StartDispatcher(params.MaxWorkers, workQueue, ProcessTask)
 
 `StartDispatcher` returns a `chan WorkRequest` for you to start adding jobs for processing.
 
-```
+```Go
 queue := worker.StartDispatcher(params.MaxWorkers, workQueue, ProcessTask)
 
 job := worker.WorkRequest{

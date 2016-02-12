@@ -1,36 +1,35 @@
 package worker
 
-type Job interface {
+type Worker interface {
 	Start()
 	Stop()
 }
 
 // Worker listens for work requests and processes the correct task.
-type Worker struct {
+type BaseWorker struct {
 	ID          int
-	Work        chan interface{}
-	WorkerQueue chan chan interface{}
+	Work        chan Payload
+	WorkerQueue chan Queue
 	QuitChan    chan bool
-	Processor   func(interface{})
+	Processor   func(Payload)
 }
 
 // NewWorker builds new worker ready to accept tasks.
-func NewWorker(id int, workerQueue chan chan interface{}, processor func(interface{})) Worker {
-	worker := Worker{
+func NewWorker(id int, workerQueue chan Queue, processor func(Payload)) BaseWorker {
+	return BaseWorker{
 		ID:          id,
-		Work:        make(chan interface{}),
+		Work:        make(Queue),
 		WorkerQueue: workerQueue,
 		QuitChan:    make(chan bool),
 		Processor:   processor,
 	}
-
-	return worker
 }
 
 // Start initiates a Worker. Listens for the work requests.
-func (w Worker) Start() {
+func (w BaseWorker) Start() {
 	go func() {
 		for {
+			// Paylaod
 			w.WorkerQueue <- w.Work
 
 			select {
@@ -45,7 +44,7 @@ func (w Worker) Start() {
 	}()
 }
 
-func (w Worker) Stop() {
+func (w BaseWorker) Stop() {
 	go func() {
 		w.QuitChan <- true
 	}()

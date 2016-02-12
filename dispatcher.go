@@ -1,33 +1,69 @@
 package worker
 
-// WorkerQueue is the list of items to be processed.
-var WorkerQueue chan chan interface{}
+type Payload interface{}
 
-// StartDispatcher takes items from the Queue and sends them to a Worker.
-func StartDispatcher(nworkers int, nqueue int, taskProcessor func(interface{})) chan interface{} {
-	queue := make(chan interface{}, nqueue)
-	WorkerQueue = make(chan chan interface{}, nworkers)
+// Queue has jobs waiting to be processed
+type Queue chan Payload
 
-	for i := 0; i < nworkers; i++ {
-		// Starting n workers
-		worker := NewWorker(i+1, WorkerQueue, taskProcessor)
+// WorkerQueue is the queue for the worker
+var WorkerQueue chan Queue
+
+// Dispatcher prepares our workers
+type Dispatcher interface {
+	Start(maxWorkers int)
+	Stop()
+}
+
+// BaseDispatcher is our base dispatcher type
+type BaseDispatcher struct {
+	Payload   Payload
+	Workers   []Worker
+	Processor func(Payload)
+	Queue     Queue
+}
+
+// NewDispatcher creates a BaseDispatcher ready for starting
+func NewDispatcher(maxQueue int, processor func(Payload)) BaseDispatcher {
+	return BaseDispatcher{
+		Processor: processor,
+		Workers:   []Worker{},
+		Queue:     make(Queue, maxQueue),
+	}
+}
+
+// Start takes items from the queue and adds them to the worker queue
+func (dispatcher BaseDispatcher) Start(maxWorkers int) {
+	WorkerQueue = make(chan Queue, maxWorkers)
+
+	// Create the amount of Workers requested
+	for i := 0; i < maxWorkers; i++ {
+		worker := NewWorker(i+1, WorkerQueue, dispatcher.Processor)
+
+		// Add worker to our dispatchers list
+		dispatcher.Workers = append(dispatcher.Workers, worker)
+
+		// Start the worker
 		worker.Start()
 	}
 
+	// Goroutine to wait for jobs
 	go func() {
 		for {
 			select {
-			case job := <-queue:
-				// Job added to global queue
+			case job := <-dispatcher.Queue:
+				// Goroutine to add job to workers queue
 				go func() {
 					worker := <-WorkerQueue
-
-					// Add job to to worker
 					worker <- job
 				}()
 			}
 		}
 	}()
+}
 
-	return queue
+// Stop stops all known workers
+func (dispatcher BaseDispatcher) Stop() {
+	for _, worker := range dispatcher.Workers {
+		worker.Stop()
+	}
 }

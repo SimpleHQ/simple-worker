@@ -8,7 +8,7 @@ type Worker interface {
 // Worker listens for work requests and processes the correct task.
 type BaseWorker struct {
 	ID          int
-	Work        chan Payload
+	Work        Queue
 	WorkerQueue chan Queue
 	QuitChan    chan bool
 	Processor   func(Payload)

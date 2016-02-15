@@ -17,7 +17,6 @@ type Dispatcher interface {
 // BaseDispatcher is our base dispatcher type
 type BaseDispatcher struct {
 	Payload   Payload
-	Workers   []Worker
 	Processor func(Payload)
 	Queue     Queue
 }
@@ -26,24 +25,24 @@ type BaseDispatcher struct {
 func NewDispatcher(maxQueue int, processor func(Payload)) BaseDispatcher {
 	return BaseDispatcher{
 		Processor: processor,
-		Workers:   []Worker{},
 		Queue:     make(Queue, maxQueue),
 	}
 }
 
 // Start takes items from the queue and adds them to the worker queue
-func (dispatcher BaseDispatcher) Start(maxWorkers int) {
+func (dispatcher BaseDispatcher) Start(maxWorkers int) []BaseWorker {
 	WorkerQueue = make(chan Queue, maxWorkers)
+	workers := []BaseWorker{}
 
 	// Create the amount of Workers requested
 	for i := 0; i < maxWorkers; i++ {
 		worker := NewWorker(i+1, WorkerQueue, dispatcher.Processor)
 
-		// Add worker to our dispatchers list
-		dispatcher.Workers = append(dispatcher.Workers, worker)
-
 		// Start the worker
 		worker.Start()
+
+		// Add worker to our dispatchers list
+		workers = append(workers, worker)
 	}
 
 	// Goroutine to wait for jobs
@@ -59,11 +58,6 @@ func (dispatcher BaseDispatcher) Start(maxWorkers int) {
 			}
 		}
 	}()
-}
 
-// Stop stops all known workers
-func (dispatcher BaseDispatcher) Stop() {
-	for _, worker := range dispatcher.Workers {
-		worker.Stop()
-	}
+	return workers
 }

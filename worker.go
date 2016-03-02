@@ -1,11 +1,12 @@
 package worker
 
+// Worker is what processes our tasks
 type Worker interface {
 	Start()
 	Stop()
 }
 
-// Worker listens for work requests and processes the correct task.
+// BaseWorker listens for work requests and processes the correct task.
 type BaseWorker struct {
 	ID          int
 	Work        Queue
@@ -44,6 +45,7 @@ func (w BaseWorker) Start() {
 	}()
 }
 
+// Stop will stop the worker
 func (w BaseWorker) Stop() {
 	go func() {
 		w.QuitChan <- true

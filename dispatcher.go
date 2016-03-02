@@ -1,5 +1,6 @@
 package worker
 
+// Payload is what the task will contain
 type Payload interface{}
 
 // Queue has jobs waiting to be processed
@@ -11,7 +12,6 @@ var WorkerQueue chan Queue
 // Dispatcher prepares our workers
 type Dispatcher interface {
 	Start(maxWorkers int)
-	Stop()
 }
 
 // BaseDispatcher is our base dispatcher type

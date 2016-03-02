@@ -11,7 +11,8 @@ var WorkerQueue chan Queue
 
 // Dispatcher prepares our workers
 type Dispatcher interface {
-	Start(maxWorkers int) []BaseWorker
+	Start(int) []BaseWorker
+	AddJob(Payload)
 }
 
 // BaseDispatcher is our base dispatcher type
@@ -60,4 +61,9 @@ func (dispatcher BaseDispatcher) Start(maxWorkers int) []BaseWorker {
 	}()
 
 	return workers
+}
+
+// AddJob will add a job to the queue to be processed
+func (dispatcher *BaseDispatcher) AddJob(payload Payload) {
+	dispatcher.Queue <- payload
 }

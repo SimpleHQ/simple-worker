@@ -11,7 +11,7 @@ var WorkerQueue chan Queue
 
 // Dispatcher prepares our workers
 type Dispatcher interface {
-	Start(maxWorkers int)
+	Start(maxWorkers int) []BaseWorker
 }
 
 // BaseDispatcher is our base dispatcher type

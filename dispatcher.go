@@ -1,33 +1,63 @@
 package worker
 
-// WorkerQueue is the list of items to be processed.
-var WorkerQueue chan chan interface{}
+// Payload is what the task will contain
+type Payload interface{}
 
-// StartDispatcher takes items from the Queue and sends them to a Worker.
-func StartDispatcher(nworkers int, nqueue int, taskProcessor func(interface{})) chan interface{} {
-	queue := make(chan interface{}, nqueue)
-	WorkerQueue = make(chan chan interface{}, nworkers)
+// Queue has jobs waiting to be processed
+type Queue chan Payload
 
-	for i := 0; i < nworkers; i++ {
-		// Starting n workers
-		worker := NewWorker(i+1, WorkerQueue, taskProcessor)
+// WorkerQueue is the queue for the worker
+var WorkerQueue chan Queue
+
+// Dispatcher prepares our workers
+type Dispatcher interface {
+	Start(maxWorkers int)
+}
+
+// BaseDispatcher is our base dispatcher type
+type BaseDispatcher struct {
+	Payload   Payload
+	Processor func(Payload)
+	Queue     Queue
+}
+
+// NewDispatcher creates a BaseDispatcher ready for starting
+func NewDispatcher(maxQueue int, processor func(Payload)) BaseDispatcher {
+	return BaseDispatcher{
+		Processor: processor,
+		Queue:     make(Queue, maxQueue),
+	}
+}
+
+// Start takes items from the queue and adds them to the worker queue
+func (dispatcher BaseDispatcher) Start(maxWorkers int) []BaseWorker {
+	WorkerQueue = make(chan Queue, maxWorkers)
+	workers := []BaseWorker{}
+
+	// Create the amount of Workers requested
+	for i := 0; i < maxWorkers; i++ {
+		worker := NewWorker(i+1, WorkerQueue, dispatcher.Processor)
+
+		// Start the worker
 		worker.Start()
+
+		// Add worker to our dispatchers list
+		workers = append(workers, worker)
 	}
 
+	// Goroutine to wait for jobs
 	go func() {
 		for {
 			select {
-			case job := <-queue:
-				// Job added to global queue
+			case job := <-dispatcher.Queue:
+				// Goroutine to add job to workers queue
 				go func() {
 					worker := <-WorkerQueue
-
-					// Add job to to worker
 					worker <- job
 				}()
 			}
 		}
 	}()
 
-	return queue
+	return workers
 }

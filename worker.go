@@ -8,18 +8,25 @@ type Worker interface {
 
 // BaseWorker listens for work requests and processes the correct task.
 type BaseWorker struct {
-	ID          int
-	Work        Queue
-	WorkerQueue chan Queue
-	QuitChan    chan bool
-	Processor   func(Payload)
+	// A basic identifier
+	ID int
+	// Work is a channel of the current job being processed.
+	// Once it is empty, it means the worker is free to pick up another job.
+	Work chan Payload
+	// WorkerQueue is the buffered channel of jobs being processed
+	// It contains each workers Work field
+	WorkerQueue chan chan Payload
+	// QuitChan is used to stop the worker
+	QuitChan chan bool
+	// Processor is called when a job is processed
+	Processor func(Payload)
 }
 
 // NewWorker builds new worker ready to accept tasks.
-func NewWorker(id int, workerQueue chan Queue, processor func(Payload)) BaseWorker {
+func NewWorker(id int, workerQueue chan chan Payload, processor func(Payload)) BaseWorker {
 	return BaseWorker{
 		ID:          id,
-		Work:        make(Queue),
+		Work:        make(chan Payload),
 		WorkerQueue: workerQueue,
 		QuitChan:    make(chan bool),
 		Processor:   processor,
@@ -30,17 +37,17 @@ func NewWorker(id int, workerQueue chan Queue, processor func(Payload)) BaseWork
 func (w BaseWorker) Start() {
 	go func() {
 		for {
-			// Paylaod
+			// Place the worker in the worker queue
 			w.WorkerQueue <- w.Work
 
 			select {
 			case job := <-w.Work:
 				// Process a task
 				w.Processor(job)
+				continue
 			case <-w.QuitChan:
-				// Qutting worker
-				return
 			}
+			break
 		}
 	}()
 }

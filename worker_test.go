@@ -1,8 +1,10 @@
 package worker_test
 
 import (
+	"math/rand"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/simplehq/simple-worker"
 )
@@ -15,7 +17,7 @@ func TestProcessMultipleJobs(t *testing.T) {
 		// Processed
 		wg.Done()
 	})
-	dispatcher.Start(1)
+	dispatcher.StartWorkers(1)
 
 	go func() {
 		for i := 0; i < 10; i++ {
@@ -24,6 +26,34 @@ func TestProcessMultipleJobs(t *testing.T) {
 		}
 	}()
 
+	wg.Wait()
+}
+
+func TestDispatcherStopsWorkers(t *testing.T) {
+	var wg sync.WaitGroup
+
+	dispatcher := worker.NewDispatcher(100, func(payload worker.Payload) {})
+
+	// Between 1 & 6 workers
+	rand.Seed(time.Now().Unix())
+	numWorkers := rand.Intn(5) + 1
+
+	workers := []worker.BaseWorker{}
+	for i := 1; i <= numWorkers; i++ {
+		workers = append(workers, worker.NewWorker(i, nil, nil))
+	}
+	dispatcher.Workers = workers
+
+	wg.Add(numWorkers)
+
+	go func() {
+		for _, worker := range dispatcher.Workers {
+			<-worker.QuitChan
+			wg.Done()
+		}
+	}()
+
+	dispatcher.StopWorkers()
 	wg.Wait()
 }
 
